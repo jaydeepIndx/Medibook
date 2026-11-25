@@ -15,6 +15,16 @@ const formatDateTime = (value: string) =>
     timeStyle: 'short',
   })
 
+const isSameLocalDay = (firstTimestamp: number, secondTimestamp: number) => {
+  const first = new Date(firstTimestamp)
+  const second = new Date(secondTimestamp)
+  return (
+    first.getFullYear() === second.getFullYear() &&
+    first.getMonth() === second.getMonth() &&
+    first.getDate() === second.getDate()
+  )
+}
+
 const statusClass: Record<MyAppointment['status'], string> = {
   booked: 'bg-blue-100 text-blue-800',
   cancelled: 'bg-slate-100 text-slate-700',
@@ -124,6 +134,45 @@ export default function MyAppointmentsPage() {
 
   const isPatient = user?.role === 'patient'
   const isDoctor = user?.role === 'doctor'
+  const todayUpcomingAppointments =
+    currentTime === null
+      ? []
+      : appointments
+          .filter((appointment) => {
+            const startTime = Date.parse(appointment.start_time)
+            return (
+              appointment.status === 'booked' &&
+              startTime > currentTime &&
+              new Date(startTime).toDateString() === new Date(currentTime).toDateString()
+            )
+          })
+          .sort(
+            (first, second) =>
+              Date.parse(first.start_time) - Date.parse(second.start_time),
+          )
+  const nextTodayAppointment = todayUpcomingAppointments[0]
+  const upcomingCount =
+    currentTime === null
+      ? 0
+      : appointments.filter(
+          (appointment) =>
+            appointment.status === 'booked' &&
+            Date.parse(appointment.start_time) > currentTime,
+        ).length
+  const todayUpcomingCount =
+    currentTime === null
+      ? 0
+      : appointments.filter((appointment) => {
+          const startTime = Date.parse(appointment.start_time)
+          return (
+            appointment.status === 'booked' &&
+            startTime > currentTime &&
+            isSameLocalDay(startTime, currentTime)
+          )
+        }).length
+  const completedCount = appointments.filter(
+    (appointment) => appointment.status === 'completed',
+  ).length
 
   return (
     <>
@@ -147,6 +196,92 @@ export default function MyAppointmentsPage() {
             </Link>
           )}
         </div>
+
+        {!loadError && (
+          <section
+            aria-labelledby="today-appointment-title"
+            className="mt-6 rounded-2xl border border-medibook-200 bg-medibook-50 p-5 shadow-sm"
+          >
+            <p className="text-sm font-semibold uppercase tracking-wider text-medibook-700">
+              Today
+            </p>
+            <h2
+              id="today-appointment-title"
+              className="mt-1 text-xl font-semibold text-medibook-950"
+            >
+              Upcoming appointment
+            </h2>
+            {loading || currentTime === null ? (
+              <p className="mt-3 text-sm text-slate-600">Checking today's schedule...</p>
+            ) : nextTodayAppointment ? (
+              <div className="mt-3 flex flex-col gap-1 text-sm text-slate-700 sm:flex-row sm:items-center sm:gap-4">
+                <time
+                  className="text-lg font-semibold text-medibook-800"
+                  dateTime={nextTodayAppointment.start_time}
+                >
+                  {new Date(nextTodayAppointment.start_time).toLocaleTimeString(undefined, {
+                    hour: 'numeric',
+                    minute: '2-digit',
+                  })}
+                </time>
+                <span>
+                  {isDoctor ? nextTodayAppointment.patient_name : nextTodayAppointment.doctor_name}
+                  {' · '}
+                  {nextTodayAppointment.specialization}
+                </span>
+                <span className="text-xs text-slate-500">
+                  Appointment #{nextTodayAppointment.id}
+                </span>
+              </div>
+            ) : (
+              <p className="mt-3 text-sm text-slate-600">
+                No more appointments scheduled for today.
+              </p>
+            )}
+          </section>
+        )}
+
+        {!loadError && (
+          <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {[
+              {
+                label: 'Total appointments',
+                value: appointments.length,
+                detail: 'All appointment records',
+              },
+              {
+                label: 'Upcoming appointments',
+                value: upcomingCount,
+                detail: 'Booked visits in the future',
+              },
+              {
+                label: "Today's upcoming appointments",
+                value: todayUpcomingCount,
+                detail: 'Booked visits later today',
+              },
+              {
+                label: 'Completed appointments',
+                value: completedCount,
+                detail: 'Visits marked completed',
+              },
+            ].map((stat) => (
+              <article
+                key={stat.label}
+                className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
+              >
+                <p className="text-sm font-medium text-slate-500">{stat.label}</p>
+                <p className="mt-3 text-3xl font-semibold text-slate-900">
+                  {loading || currentTime === null ? (
+                    <span className="text-xl text-slate-400">Loading...</span>
+                  ) : (
+                    stat.value
+                  )}
+                </p>
+                <p className="mt-1 text-xs text-slate-500">{stat.detail}</p>
+              </article>
+            ))}
+          </div>
+        )}
 
         <div className="mt-6 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
           {loading ? (
