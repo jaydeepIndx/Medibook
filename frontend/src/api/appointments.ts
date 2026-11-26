@@ -31,3 +31,8 @@ export const getMyAppointments = async () => {
   const response = await apiClient.get<MyAppointmentsResponse>('/appointments/me')
   return response.data.appointments
 }
+
+export const exportAllAppointments = async () => {
+  const response = await apiClient.get<Blob>('/export', { responseType: 'blob' })
+  return response.data
+}

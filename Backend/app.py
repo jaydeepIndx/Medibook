@@ -7,10 +7,10 @@ import models
 from route.auth_controller import auth_bp
 from route.doctor_controller import doctor_bp
 from route.appointment_controller import appointment_bp
+from route.admin_controller import admin_bp
 
 app = Flask(__name__)
 
-app = Flask(__name__)
 
 CORS(
     app,
@@ -28,6 +28,7 @@ cache.init_app(app)
 app.register_blueprint(auth_bp)
 app.register_blueprint(doctor_bp)
 app.register_blueprint(appointment_bp)
+app.register_blueprint(admin_bp)
 jwt.init_app(app)
 swagger = Swagger(app)
 

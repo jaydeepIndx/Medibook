@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { toast } from 'react-toastify'
+import { exportAllAppointments } from '../api/appointments'
 import { deleteDoctor, getDoctors } from '../api/doctors'
 import DoctorFormModal from '../components/DoctorFormModal'
 import type { Doctor } from '../types/api'
@@ -12,6 +13,7 @@ interface AdminDashboardProps {
 export default function AdminDashboard({ initialAddOpen = false }: AdminDashboardProps) {
   const [doctors, setDoctors] = useState<Doctor[]>([])
   const [loading, setLoading] = useState(true)
+  const [exportingAppointments, setExportingAppointments] = useState(false)
   const [deletingId, setDeletingId] = useState<number | null>(null)
   const [search, setSearch] = useState('')
   const [error, setError] = useState('')
@@ -98,6 +100,26 @@ export default function AdminDashboard({ initialAddOpen = false }: AdminDashboar
     }
   }
 
+  const handleExportAppointments = async () => {
+    setExportingAppointments(true)
+    try {
+      const csv = await exportAllAppointments()
+      const url = URL.createObjectURL(csv)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = 'appointments.csv'
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      URL.revokeObjectURL(url)
+      toast.success('Appointments exported successfully.')
+    } catch (requestError) {
+      toast.error(getApiErrorMessage(requestError, 'Unable to export appointments. Please try again.'))
+    } finally {
+      setExportingAppointments(false)
+    }
+  }
+
   return (
     <>
       <section className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
@@ -106,17 +128,27 @@ export default function AdminDashboard({ initialAddOpen = false }: AdminDashboar
             <h2 className="text-2xl font-semibold text-slate-900">Overview</h2>
             <p className="mt-1 text-sm text-slate-500">Manage the doctors registered with MediBook.</p>
           </div>
-          <button
-            type="button"
-            onClick={() => {
-              setSelectedDoctor(null)
-              setFormOpen(true)
-            }}
-            className="inline-flex items-center justify-center gap-2 self-start rounded-xl bg-medibook-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-medibook-700 sm:self-auto"
-          >
-            <span aria-hidden="true" className="text-lg leading-none">+</span>
-            Add doctor
-          </button>
+          <div className="flex flex-col gap-2 self-start sm:flex-row sm:self-auto">
+            <button
+              type="button"
+              onClick={() => void handleExportAppointments()}
+              disabled={exportingAppointments}
+              className="inline-flex items-center justify-center gap-2 rounded-xl border border-medibook-600 px-4 py-2.5 text-sm font-semibold text-medibook-700 transition hover:bg-medibook-50 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {exportingAppointments ? 'Exporting...' : 'Export appointments CSV'}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedDoctor(null)
+                setFormOpen(true)
+              }}
+              className="inline-flex items-center justify-center gap-2 rounded-xl bg-medibook-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-medibook-700"
+            >
+              <span aria-hidden="true" className="text-lg leading-none">+</span>
+              Add doctor
+            </button>
+          </div>
         </div>
 
         <div className="mb-7 grid gap-4 sm:grid-cols-2">
