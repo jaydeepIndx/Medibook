@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { ToastContainer, toast } from 'react-toastify'
 import type { User } from '../types/api'
 import { getTokenExpirationTime, isWellFormedToken } from '../utils/authToken'
@@ -65,23 +65,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => window.clearTimeout(timeout)
   }, [token])
 
-  const login = (nextToken: string, nextUser: User) => {
+  const login = useCallback((nextToken: string, nextUser: User) => {
     sessionStorage.setItem('medibook_token', nextToken)
     sessionStorage.setItem('medibook_user', JSON.stringify(nextUser))
     setToken(nextToken)
     setUser(nextUser)
-  }
+  }, [])
 
-  const logout = () => {
+  const updateUser = useCallback((updates: Pick<User, 'name' | 'email'>) => {
+    if (!user) return
+
+    const nextUser = { ...user, ...updates }
+    sessionStorage.setItem('medibook_user', JSON.stringify(nextUser))
+    setUser(nextUser)
+  }, [user])
+
+  const logout = useCallback(() => {
     sessionStorage.removeItem('medibook_token')
     sessionStorage.removeItem('medibook_user')
     setToken(null)
     setUser(null)
-  }
+  }, [])
 
   const value = useMemo(
-    () => ({ user, token, login, logout }),
-    [user, token],
+    () => ({ user, token, login, updateUser, logout }),
+    [user, token, login, updateUser, logout],
   )
 
   return (

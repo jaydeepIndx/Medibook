@@ -6,6 +6,7 @@ from extensions import db
 from models.appointment import Appointment
 from models.user import User
 from models.doctor import Doctor
+from utils.database_performance import measure_db_time
 
 
 def create_doctor(doctor_data):
@@ -50,7 +51,7 @@ def create_doctor(doctor_data):
     return new_doctor
 
 
-
+@measure_db_time
 def get_all_doctors(specialization=None):
 
     query = Doctor.query.join(User)

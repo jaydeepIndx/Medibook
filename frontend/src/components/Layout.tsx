@@ -1,5 +1,7 @@
+import { useState } from 'react'
 import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
+import UserProfileModal from './UserProfileModal'
 
 const navClass = ({ isActive }: { isActive: boolean }) =>
   `rounded-lg px-3 py-2 text-sm font-medium transition ${
@@ -9,8 +11,9 @@ const navClass = ({ isActive }: { isActive: boolean }) =>
   }`
 
 export default function Layout() {
-  const { user, logout } = useAuth()
+  const { user, updateUser, logout } = useAuth()
   const navigate = useNavigate()
+  const [profileOpen, setProfileOpen] = useState(false)
 
   const handleLogout = () => {
     logout()
@@ -38,9 +41,20 @@ export default function Layout() {
             )}
             {user ? (
               <>
-                <span className="hidden rounded-lg bg-slate-100 px-3 py-2 text-sm text-slate-700 md:block">
-                  {user.name}
-                </span>
+                {user.role === 'patient' || user.role === 'doctor' ? (
+                  <button
+                    type="button"
+                    onClick={() => setProfileOpen(true)}
+                    className="rounded-lg bg-slate-100 px-3 py-2 text-sm text-slate-700 transition hover:bg-slate-200"
+                    aria-label="Open profile settings"
+                  >
+                    {user.name}
+                  </button>
+                ) : (
+                  <span className="hidden rounded-lg bg-slate-100 px-3 py-2 text-sm text-slate-700 md:block">
+                    {user.name}
+                  </span>
+                )}
                 <button
                   type="button"
                   onClick={handleLogout}
@@ -61,6 +75,16 @@ export default function Layout() {
       <main>
         <Outlet />
       </main>
+      {profileOpen && user && (user.role === 'patient' || user.role === 'doctor') && (
+        <UserProfileModal
+          user={user}
+          onClose={() => setProfileOpen(false)}
+          onSaved={(updates) => {
+            updateUser(updates)
+            setProfileOpen(false)
+          }}
+        />
+      )}
     </div>
   )
 }
